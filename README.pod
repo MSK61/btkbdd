@@ -1,3 +1,10 @@
+=pod
+
+B<ThisE<39>s a fork of L<btkbdd|https://github.com/lkundrak/btkbdd> authored by
+L<Lubomir Rintel|https://github.com/lkundrak> that aims to send normal text
+(supplied as a command-line argument) as keystrokes typed on a bluetooth
+keyboard.>
+
 =head1 btkbdd and evmuxd
 
 This is a package that provides two nifty tools for sharing your keyboard via
@@ -14,5 +21,12 @@ operation of the tools.
 </center>
 
 =end html
+
+=head2 usage notes
+
+One way to input passwords without echoing them to the terminal(assuming a bash
+shell is used) is to execute:
+
+ { read -s; echo $REPLY; } | xargs sudo btkbdd -t <target_address>
 
 =cut

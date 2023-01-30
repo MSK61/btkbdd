@@ -19,8 +19,9 @@ DOC = architecture.png
 all: $(BINS) $(MAN)
 local: $(DOC)
 
-btkbdd/btkbdd: btkbdd/main.o btkbdd/keyb.o btkbdd/sdp.o btkbdd/l2cap.o btkbdd/hci.o
-btkbbdd/keyb.o: btkbdd/btkbdd.h btkbdd/hid.h btkbdd/linux2hid.h
+btkbdd/btkbdd: btkbdd/main.o btkbdd/keyb.o btkbdd/sdp.o btkbdd/l2cap.o btkbdd/hci.o btkbdd/ascii2linux.o
+btkbbdd/ascii2linux.o: btkbdd/ascii2linux.h
+btkbbdd/keyb.o: btkbdd/btkbdd.h btkbdd/hid.h btkbdd/linux2hid.h btkbdd/ascii2linux.h
 btkbbdd/l2cap.o: btkbdd/btkbdd.h
 btkbbdd/main.o: btkbdd/btkbdd.h
 btkbbdd/sdp.o: btkbdd/btkbdd.h btkbdd/apple.h

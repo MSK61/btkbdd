@@ -24,16 +24,9 @@ main (argc, argv)
 	bacpy (&src, BDADDR_ANY);
 	bacpy (&tgt, BDADDR_ANY);
 
-	while ((opt = getopt(argc, argv, "s:t:c:dv")) != -1) {
+	while ((opt = getopt(argc, argv, "t:c:dv")) != -1) {
 
 		switch (opt) {
-		case 's':
-			if (bachk (optarg) == -1) {
-				fprintf (stderr, "%s: Not a valid bluetooth address\n", optarg);
-				return EXIT_FAILURE;
-			}
-			str2ba (optarg, &src);
-			break;
 		case 't':
 			if (bachk (optarg) == -1) {
 				fprintf (stderr, "%s: Not a valid bluetooth address\n", optarg);
