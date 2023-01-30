@@ -222,7 +222,6 @@ loop (input, src, tgt)
 	bdaddr_t *tgt;
 {
 	int hci = -1;
-	uint32_t save_class = 0;
 
 	if (hci == -1) {
 		if (bacmp (&src, BDADDR_ANY)) {
@@ -238,13 +237,6 @@ loop (input, src, tgt)
 			hci = 0;
 		}
 		if (hci >= 0) {
-			if (!save_class)
-				save_class = set_class (hci, 0x002540UL);
-			/* Retry opening HCI on next ocassion */
-			if (!save_class)
-				hci = -1;
-		}
-		if (hci >= 0) {
 			if (sdp_open () == 1)
 				sdp_add_keyboard ();
 		}
@@ -252,8 +244,5 @@ loop (input, src, tgt)
 
 	session (src, tgt, input);
 	sdp_remove ();
-	if (save_class)
-		set_class (hci, save_class);
-
 	return 1;
 }
