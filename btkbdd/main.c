@@ -65,9 +65,8 @@ main (argc, argv)
 
 	if (optind + 1 != argc) {
 		fprintf (stderr, "Usage: %s "
-			"[-s <sr:c_:_a:dd:re:ss>] "
 			"[-t <de:st:_a:dd:re:ss>] "
-			"[-c <file>] [-d] <device>\n", argv[0]);
+			"[-c <file>] [-d]\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
