@@ -27,6 +27,6 @@ operation of the tools.
 One way to input passwords without echoing them to the terminal(assuming a bash
 shell is used) is to execute:
 
- { read -s; echo $REPLY; } | xargs btkbdd -t <target_address>
+ (read -s; btkbdd -t <target_address> "$REPLY")
 
 =cut
