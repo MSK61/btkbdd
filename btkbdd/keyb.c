@@ -139,7 +139,6 @@ session (src, tgt, input)
 	struct status status;		/* keyboard state */
 	int token_idx;
 	const char *tokens[] = {activation, input, "\n"};
-	int num_of_tokens = sizeof(tokens) / sizeof(tokens[0]);
 
 	/* Initialize the keyboard state */
 	status.report.type = HIDP_TRANS_DATA | HIDP_DATA_RTYPE_INPUT;
@@ -154,9 +153,9 @@ session (src, tgt, input)
 	 * get the receiver ready for handling the real payload. This's just an
 	 * arbitrary sequence(a few backspaces); any sequence would actually
 	 * work. */
-	memset (activation, 27, sizeof(activation) - sizeof(activation[0]));
+	memset (activation, 27, 10);
 
-	for (token_idx = 0; token_idx < num_of_tokens; token_idx++) {
+	for (token_idx = 0; token_idx < 3; token_idx++) {
 		const char *in_char = NULL;
 
 		for (in_char = tokens[token_idx]; *in_char; in_char++) {
