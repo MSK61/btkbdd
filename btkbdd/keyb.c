@@ -15,6 +15,8 @@
 #include "hid.h"
 #include "linux2hid.h"
 
+#define NUM_OF_TOKENS 3
+
 /* A packet we're sending to host after a keypress */
 struct key_report {
 	uint8_t type;
@@ -127,6 +129,31 @@ hello (control)
 	return 0;
 }
 
+static int
+prepare_tokens (tokens, num_of_tokens, activation, activation_len, input)
+	const char *tokens[];
+	int num_of_tokens;
+	char activation[];
+	int activation_len;
+	char *input;
+{
+
+	if (num_of_tokens < NUM_OF_TOKENS)
+		return 0;
+
+	/* The first few keystrokes tend to get lost at the receiving end. A few
+	 * dummy keystrokes at the beginning will just skip this flaky phase and
+	 * get the receiver ready for handling the real payload. This's just an
+	 * arbitrary sequence(a few backspaces); any sequence would actually
+	 * work. */
+	memset (activation, 27, activation_len);
+	activation[activation_len] = 0;
+	tokens[0] = activation;
+	tokens[1] = input;
+	tokens[2] = "\n";
+	return 1;
+}
+
 /* Dispatch the work */
 static void
 session (src, tgt, input)
@@ -134,11 +161,11 @@ session (src, tgt, input)
 	bdaddr_t *tgt;
 	char *input;
 {
-	char activation[11] = {0};	/* arbitrary activation sequence */
+	char activation[11];		/* arbitrary activation sequence */
 	int control = -1, intr = -1;	/* host sockets */
 	struct status status;		/* keyboard state */
 	int token_idx;
-	const char *tokens[] = {activation, input, "\n"};
+	const char *tokens[NUM_OF_TOKENS];
 
 	/* Initialize the keyboard state */
 	status.report.type = HIDP_TRANS_DATA | HIDP_DATA_RTYPE_INPUT;
@@ -148,65 +175,61 @@ session (src, tgt, input)
 	status.report.key[0] = status.report.key[1] = status.report.key[2]
 		= status.report.key[3] = status.report.key[4]
 		= status.report.key[5] = 0;
-	/* The first few keystrokes tend to get lost at the receiving end. A few
-	 * dummy keystrokes at the beginning will just skip this flaky phase and
-	 * get the receiver ready for handling the real payload. This's just an
-	 * arbitrary sequence(a few backspaces); any sequence would actually
-	 * work. */
-	memset (activation, 27, 10);
 
-	for (token_idx = 0; token_idx < 3; token_idx++) {
-		const char *in_char = NULL;
+	if (prepare_tokens (tokens, NUM_OF_TOKENS, activation, 10, input))
+		for (token_idx = 0; token_idx < 3; token_idx++) {
+			const char *in_char = NULL;
 
-		for (in_char = tokens[token_idx]; *in_char; in_char++) {
-			DBG("Entered main loop.\n");
-			struct input_event events[MAX_EVENTS_PER_ASCII_CHAR];
-			int i;
-			int num_of_events = ascii_char (
-			    events, MAX_EVENTS_PER_ASCII_CHAR, *in_char);
+			for (in_char = tokens[token_idx]; *in_char; in_char++) {
+				DBG("Entered main loop.\n");
+				struct input_event events[MAX_EVENTS_PER_ASCII_CHAR];
+				int i;
+				int num_of_events = ascii_char (
+				    events, MAX_EVENTS_PER_ASCII_CHAR,
+				    *in_char);
 
-			for (i = 0; i < num_of_events; i++) {
-				/* Read the keyboard event and update status */
-				int ret = input_event (
-				    &status, events + i, control, intr);
-				if (ret == 0)
-					continue;
-				DBG("Input event.\n");
+				for (i = 0; i < num_of_events; i++) {
+					/* Read the keyboard event and update status */
+					int ret = input_event (
+					    &status, events + i, control, intr);
+					if (ret == 0)
+						continue;
+					DBG("Input event.\n");
 
-				/* Noone managed to connect to us so far.
-				 * Try to reach out for a host ourselves. */
-				if (control == -1) {
-					/* Noone to talk to? */
-					if (!bacmp (tgt, BDADDR_ANY))
-						break;
+					/* Noone managed to connect to us so far.
+					 * Try to reach out for a host ourselves. */
+					if (control == -1) {
+						/* Noone to talk to? */
+						if (!bacmp (tgt, BDADDR_ANY))
+							break;
 
-					control = l2cap_connect (&src, tgt, L2CAP_PSM_HIDP_CTRL);
-					if (control == -1)
-						break;
-					intr = l2cap_connect (&src, tgt, L2CAP_PSM_HIDP_INTR);
-					if (intr == -1) {
-						close (control);
-						control = -1;
+						control = l2cap_connect (&src, tgt, L2CAP_PSM_HIDP_CTRL);
+						if (control == -1)
+							break;
+						intr = l2cap_connect (&src, tgt, L2CAP_PSM_HIDP_INTR);
+						if (intr == -1) {
+							close (control);
+							control = -1;
+							break;
+						}
+						if (hello (control) == -1)
+							break;
+					}
+
+					/* Simulate a 200 ms delay. */
+					if (token_idx > 0 ||
+					    in_char > tokens[token_idx] ||
+					    i > 0)
+						usleep (200000);
+
+					/* Send the packet to the host. */
+					if (write (intr, &status.report, sizeof(status.report)) <= 0) {
+						perror ("Could not send a packet to the host");
 						break;
 					}
-					if (hello (control) == -1)
-						break;
 				}
-
-				/* Simulate a 200 ms delay. */
-				if (token_idx > 0 || in_char > tokens[token_idx] || i > 0)
-					usleep (200000);
-
-				/* Send the packet to the host. */
-				if (write (intr, &status.report, sizeof(status.report)) <= 0) {
-					perror ("Could not send a packet to the host");
-					break;
-				}
-
 			}
 		}
-
-	}
 
 	if (control != -1)
 		close (control);
